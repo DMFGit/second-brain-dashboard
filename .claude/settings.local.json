@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)",
+      "Bash(python tools/discover_schema.py)",
+      "Bash(python tools/notion_tasks.py)",
+      "Bash(python tools/notion_projects.py)",
+      "Bash(python -c \"from tools.server import app; print\\(''Server imports OK''\\)\")",
+      "Bash(curl -s http://localhost:3000/api/dashboard)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f''''Dashboard: {d[\"\"counts\"\"][\"\"today\"\"]} today, {d[\"\"counts\"\"][\"\"overdue\"\"]} overdue, {d[\"\"counts\"\"][\"\"upcoming\"\"]} upcoming''''\\)\")",
+      "Bash(curl -s http://localhost:3000/api/notes)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f''''Notes: {len\\(d[\"\"notes\"\"]\\)} returned''''\\); [print\\(f''''  [{n[\"\"type\"\"]}] {n[\"\"title\"\"]}''''\\) for n in d[''''notes''''][:5]]\")",
+      "Bash(python -c \"import sys; print\\(sys.stdin.read\\(\\)[:500]\\)\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f''''Notes: {len\\(d[\"\"notes\"\"]\\)} returned''''\\); [print\\(f''''  [{n.get\\(\"\"type\"\",\"\"?\"\"\\)}] {n[\"\"title\"\"]}''''\\) for n in d[''''notes''''][:5]]\")",
+      "Bash(curl -s http://localhost:3000/api/books)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f''''Reading: {len\\(d[\"\"currently_reading\"\"]\\)}  All: {len\\(d[\"\"all_books\"\"]\\)}''''\\); [print\\(f''''  {b[\"\"title\"\"]} by {b[\"\"author\"\"]}''''\\) for b in d[''''currently_reading'''']]\")",
+      "Bash(curl -s http://localhost:3000/api/recipes)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f''''Recipes: {len\\(d[\"\"recipes\"\"]\\)}''''\\); [print\\(f''''  {r[\"\"title\"\"]}''''\\) for r in d[''''recipes''''][:5]]\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f''''Recipes: {len\\(d[\"\"recipes\"\"]\\)}''''\\); [print\\(f''''  {r[\"\"title\"\"]} \\(fav: {r[\"\"favorite\"\"]}\\)''''\\) for r in d[''''recipes''''][:5]]\")",
+      "Bash(curl -s http://localhost:3000/api/review)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); c=d[''''counts'''']; print\\(f''''Completed: {c[\"\"completed\"\"]}  Carry-over: {c[\"\"carry_over\"\"]}  Next week: {c[\"\"next_week\"\"]}''''\\)\")",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/api/dashboard)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
+      "Bash(curl -v -X PATCH \"http://localhost:3000/api/tasks/28e5b4cc-2f21-80bf-a42f-f50da941c25d?action=complete\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/api/review)"
+    ]
+  }
+}

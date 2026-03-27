@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from dotenv import load_dotenv; load_dotenv\\(\\); import os; key = os.getenv\\(''NOTION_API_KEY''\\); print\\(f''Key found: {key[:10]}...'' if key else ''NO KEY FOUND''\\)\")",
+      "Bash(python -c \":*)",
+      "Bash(tasklist //FI 'IMAGENAME eq python.exe')",
+      "Bash(ipconfig)"
+    ]
+  }
+}
