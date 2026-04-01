@@ -26,11 +26,20 @@ PROP_URL = "URL"             # url
 def _serialize_note(page: dict) -> dict:
     """Convert a Notion page to a clean note dict."""
     note_date = get_property_value(page, PROP_NOTE_DATE)
+    explicit_date = note_date.get("start") if note_date else None
+
+    # Fall back to Notion's created_time when Note Date is empty
+    fallback_date = None
+    if not explicit_date:
+        created = page.get("created_time", "")
+        if created:
+            fallback_date = created[:10]  # "2026-03-15T..." → "2026-03-15"
+
     return {
         "id": page["id"],
         "title": get_page_title(page),
         "type": get_property_value(page, PROP_TYPE),
-        "note_date": note_date.get("start") if note_date else None,
+        "note_date": explicit_date or fallback_date,
         "project_ids": get_property_value(page, PROP_PROJECT) or [],
         "favorite": get_property_value(page, PROP_FAVORITE),
         "tag_ids": get_property_value(page, PROP_TAG) or [],
@@ -40,10 +49,21 @@ def _serialize_note(page: dict) -> dict:
 
 
 def get_recent_notes(limit: int = 20) -> list:
-    """Get the most recent notes sorted by Note Date descending."""
-    sorts = [{"property": PROP_NOTE_DATE, "direction": "descending"}]
+    """Get the most recent notes sorted by date descending.
+
+    Uses Note Date when available, falls back to created_time.
+    Fetches extra pages to account for undated notes that Notion
+    pushes to the end of a Note Date sort.
+    """
+    # Sort by created_time so we get a consistent chronological order
+    # even for notes without a Note Date
+    sorts = [{"timestamp": "created_time", "direction": "descending"}]
     pages = query_database("NOTES", sorts=sorts, page_size=limit)
-    return [_serialize_note(p) for p in pages[:limit]]
+    notes = [_serialize_note(p) for p in pages]
+
+    # Re-sort by the effective date (note_date with fallback already applied)
+    notes.sort(key=lambda n: n["note_date"] or "", reverse=True)
+    return notes[:limit]
 
 
 def get_notes_by_type(note_type: str) -> list:
@@ -62,6 +82,30 @@ def get_favorite_notes() -> list:
     filter_obj = {
         "property": PROP_FAVORITE,
         "checkbox": {"equals": True},
+    }
+    sorts = [{"property": PROP_NOTE_DATE, "direction": "descending"}]
+    pages = query_database("NOTES", filter_obj=filter_obj, sorts=sorts)
+    return [_serialize_note(p) for p in pages]
+
+
+def get_notes_by_project(project_id: str) -> list:
+    """Filter notes by Project relation ID."""
+    filter_obj = {
+        "property": PROP_PROJECT,
+        "relation": {"contains": project_id},
+    }
+    sorts = [{"property": PROP_NOTE_DATE, "direction": "descending"}]
+    pages = query_database("NOTES", filter_obj=filter_obj, sorts=sorts)
+    return [_serialize_note(p) for p in pages]
+
+
+def get_notes_by_project_and_type(project_id: str, note_type: str) -> list:
+    """Filter notes by both Project relation ID and Type select."""
+    filter_obj = {
+        "and": [
+            {"property": PROP_PROJECT, "relation": {"contains": project_id}},
+            {"property": PROP_TYPE, "select": {"equals": note_type}},
+        ]
     }
     sorts = [{"property": PROP_NOTE_DATE, "direction": "descending"}]
     pages = query_database("NOTES", filter_obj=filter_obj, sorts=sorts)
