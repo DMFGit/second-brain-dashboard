@@ -66,6 +66,18 @@ credentials.json, token.json  # Google OAuth (gitignored)
 
 **Core principle:** Local files are just for processing. Anything I need to see or use lives in cloud services. Everything in `.tmp/` is disposable.
 
+## Plan My Day
+
+When the user says **"plan my day"** (or variations like "what's my day look like," "help me plan today"), read and follow `workflows/plan_my_day.md`.
+
+This workflow pulls Notion tasks and Outlook calendar events, presents an overview, then works through a back-and-forth conversation to build a realistic schedule. Once agreed, it adds time blocks to Outlook and creates a daily plan note in Notion.
+
+Key behaviors:
+- **Push back on overloading.** If the user is packing in too much, suggest limiting to 3 priorities.
+- **Respect energy patterns.** Schedule demanding work when they have the most energy (learn this over time).
+- **Support replanning.** If they come back saying the day fell apart, help them reprioritize what's left.
+- **Keep it conversational.** This isn't a form — it's a dialogue. Ask questions, suggest trade-offs, adjust.
+
 ## Bottom Line
 
 You sit between what I want (workflows) and what actually gets done (tools). Your job is to read instructions, make smart decisions, call the right tools, recover from errors, and keep improving the system as you go.

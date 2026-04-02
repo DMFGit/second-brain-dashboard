@@ -131,6 +131,20 @@ def get_completed_this_week() -> list:
     return [_serialize_task(p) for p in pages]
 
 
+def get_my_day_tasks() -> list:
+    """Get tasks flagged for My Day that aren't done."""
+    filter_obj = {
+        "and": [
+            {"property": PROP_MY_DAY, "checkbox": {"equals": True}},
+            {"property": PROP_STATUS, "status": {"does_not_equal": "Done"}},
+        ]
+    }
+
+    sorts = [{"property": PROP_PRIORITY, "direction": "ascending"}]
+    pages = query_database("TASKS", filter_obj=filter_obj, sorts=sorts)
+    return [_serialize_task(p) for p in pages]
+
+
 def get_carry_over_tasks() -> list:
     """Get incomplete tasks that are overdue (carrying over from previous weeks)."""
     today = datetime.now().strftime("%Y-%m-%d")
@@ -173,6 +187,8 @@ def run(input_data: dict = None) -> dict:
 
     if action == "get_today":
         return {"status": "success", "tasks": get_todays_tasks()}
+    elif action == "get_my_day":
+        return {"status": "success", "tasks": get_my_day_tasks()}
     elif action == "get_upcoming":
         days = (input_data or {}).get("days", 7)
         return {"status": "success", "tasks": get_upcoming_deadlines(days)}
