@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#121417">
+  <meta name="theme-color" content="#1a1814">
   <title>Second Brain</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
@@ -132,47 +132,31 @@
 
     <!-- ==================== NOTES PAGE ==================== -->
     <div class="page" id="page-notes">
-      <header class="page-header notes-header">
-        <div class="notes-header-top">
-          <h1 class="page-title">Notes</h1>
-          <span class="notes-total" id="notesTotal"></span>
-        </div>
-        <div class="notes-toolbar">
-          <div class="search-bar notes-search-bar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" class="search-input" id="notesSearch" placeholder="Search notes..." autocomplete="off">
-          </div>
-          <div class="project-select-wrap">
-            <svg class="project-select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-            <select id="notesProjectFilter" class="project-select">
-              <option value="">All Projects</option>
-            </select>
-          </div>
-        </div>
-        <div class="filter-scroll" id="notesFilterRow">
+      <header class="page-header">
+        <h1 class="page-title">Notes</h1>
+        <div class="filter-row" id="notesFilterRow">
           <button class="filter-chip active" data-filter="all">All</button>
-          <button class="filter-chip" data-filter="Journal">
-            <span class="filter-chip-dot" style="background:var(--amber)"></span>Journal
-          </button>
-          <button class="filter-chip" data-filter="Meeting">
-            <span class="filter-chip-dot" style="background:#6ba3d4"></span>Meeting
-          </button>
-          <button class="filter-chip" data-filter="Reference">
-            <span class="filter-chip-dot" style="background:var(--green)"></span>Reference
-          </button>
-          <button class="filter-chip" data-filter="Web Clip">
-            <span class="filter-chip-dot" style="background:#9b7ec4"></span>Web Clip
-          </button>
-          <button class="filter-chip" data-filter="favorites">
-            <span class="filter-chip-dot" style="background:var(--amber)"></span>Favorites
-          </button>
+          <button class="filter-chip" data-filter="Journal">Journal</button>
+          <button class="filter-chip" data-filter="Meeting">Meeting</button>
+          <button class="filter-chip" data-filter="Reference">Reference</button>
+          <button class="filter-chip" data-filter="Web Clip">Web Clip</button>
+          <button class="filter-chip" data-filter="favorites">Favorites</button>
         </div>
       </header>
+      <div class="notes-controls">
+        <div class="search-bar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input" id="notesSearch" placeholder="Search notes..." autocomplete="off">
+        </div>
+        <div class="project-select-wrap">
+          <svg class="project-select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <select id="notesProjectFilter" class="project-select">
+            <option value="">All Projects</option>
+          </select>
+        </div>
+      </div>
       <div class="notes-list" id="notesList">
         <div class="skeleton-loader"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line"></div></div>
-      </div>
-      <div class="notes-load-more hidden" id="notesLoadMore">
-        <button class="load-more-btn" id="loadMoreBtn">Load more</button>
       </div>
     </div>
 
@@ -297,7 +281,7 @@
     <button class="error-dismiss" id="errorDismiss">&times;</button>
   </div>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});

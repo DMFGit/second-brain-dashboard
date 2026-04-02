@@ -20,9 +20,6 @@ let notesFilter = 'all';
 let notesQuery = '';
 let notesProject = '';
 let projectsLoaded = false;
-let notesOffset = 0;
-let notesHasMore = false;
-const NOTES_PAGE_SIZE = 30;
 let libraryTab = 'books';
 
 // --- DOM Refs ---
@@ -261,18 +258,13 @@ async function loadProjectsDropdown() {
   } catch {}
 }
 
-async function loadNotes(append = false) {
+async function loadNotes() {
   const container = $('#notesList');
   if (!container) return;
 
   loadProjectsDropdown();
 
-  if (!append) notesOffset = 0;
-
   const params = new URLSearchParams();
-  params.set('limit', NOTES_PAGE_SIZE);
-  params.set('offset', notesOffset);
-
   if (notesQuery) {
     params.set('q', notesQuery);
   } else {
@@ -283,37 +275,12 @@ async function loadNotes(append = false) {
   try {
     const res = await fetch(`${API}/api/notes?${params}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    // Update total count
-    const totalEl = $('#notesTotal');
-    if (totalEl && data.total != null) {
-      totalEl.textContent = `${data.total} note${data.total === 1 ? '' : 's'}`;
-    }
-
-    // Track pagination
-    notesHasMore = data.has_more || false;
-    const loadMoreWrap = $('#notesLoadMore');
-    if (loadMoreWrap) loadMoreWrap.classList.toggle('hidden', !notesHasMore);
-
-    if (append && notesData) {
-      notesData.notes = [...notesData.notes, ...data.notes];
-    } else {
-      notesData = data;
-    }
-
-    renderNotes(notesData.notes, data.favorites);
+    notesData = await res.json();
+    renderNotes(notesData.notes);
   } catch (err) {
     console.error('Notes load failed:', err);
-    if (!append) {
-      container.innerHTML = '<div class="empty-state">Failed to load notes</div>';
-    }
+    container.innerHTML = '<div class="empty-state">Failed to load notes</div>';
   }
-}
-
-function loadMoreNotes() {
-  notesOffset += NOTES_PAGE_SIZE;
-  loadNotes(true);
 }
 
 const NOTE_ICONS = {
@@ -343,7 +310,7 @@ function renderNoteCard(note, i) {
   })() : '';
 
   return `
-    <a class="note-item" data-type="${typeSlug}" href="${note.url || '#'}" target="_blank" rel="noopener" style="animation-delay: ${Math.min(i, 15) * 0.03}s">
+    <a class="note-item" data-type="${typeSlug}" href="${note.url || '#'}" target="_blank" rel="noopener" style="animation-delay: ${i * 0.03}s">
       <span class="note-icon">${icon}</span>
       <div class="note-body">
         <div class="note-title">${escapeHtml(note.title)}</div>
@@ -357,32 +324,7 @@ function renderNoteCard(note, i) {
     </a>`;
 }
 
-function renderPinnedFavorites(favorites) {
-  if (!favorites || favorites.length === 0) return '';
-
-  return `
-    <div class="notes-pinned">
-      <div class="notes-pinned-header">
-        <span>★</span> Pinned Favorites
-      </div>
-      <div class="notes-pinned-grid">
-        ${favorites.map((note, i) => {
-          const dateLabel = note.note_date ? formatDate(note.note_date) : '';
-          const typeSlug = note.type ? note.type.toLowerCase().replace(/\s+/g, '-') : '';
-          return `
-            <a class="note-pin-card" href="${note.url || '#'}" target="_blank" rel="noopener" style="animation-delay: ${i * 0.04}s">
-              <div class="note-pin-title">${escapeHtml(note.title)}</div>
-              <div class="note-pin-meta">
-                ${note.type ? `<span class="note-type note-type--${typeSlug}">${escapeHtml(note.type)}</span>` : ''}
-                ${dateLabel ? ` · ${dateLabel}` : ''}
-              </div>
-            </a>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
-
-function renderNotes(notes, favorites) {
+function renderNotes(notes) {
   const container = $('#notesList');
   if (!container) return;
 
@@ -390,20 +332,10 @@ function renderNotes(notes, favorites) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">📝</div>
-        ${notesQuery ? `No notes matching "${escapeHtml(notesQuery)}"` : 'No notes found'}
+        No notes found
       </div>`;
     return;
   }
-
-  // Show pinned favorites at top when on "All" view with no search
-  const pinnedHtml = (notesFilter === 'all' && !notesQuery && !notesProject && favorites?.length)
-    ? renderPinnedFavorites(favorites)
-    : '';
-
-  // Show active filter indicator when filtering
-  const filterLabel = notesFilter !== 'all' && !notesQuery
-    ? `<div class="notes-active-filter">Showing: <strong>${escapeHtml(notesFilter === 'favorites' ? 'Favorites' : notesFilter)}</strong>${notesProject ? ' in project' : ''} <button onclick="clearNotesFilters()">clear</button></div>`
-    : '';
 
   // Group notes by date
   const groups = [];
@@ -418,32 +350,12 @@ function renderNotes(notes, favorites) {
     groupMap[label].push({ note, idx: idx++ });
   }
 
-  container.innerHTML = pinnedHtml + filterLabel + groups.map(label => `
+  container.innerHTML = groups.map(label => `
     <div class="notes-date-group">
       <div class="notes-group-header">${escapeHtml(label)}</div>
       ${groupMap[label].map(({ note, idx: i }) => renderNoteCard(note, i)).join('')}
     </div>
   `).join('');
-}
-
-function clearNotesFilters() {
-  notesFilter = 'all';
-  notesProject = '';
-  notesQuery = '';
-
-  const search = $('#notesSearch');
-  if (search) search.value = '';
-  const projectSelect = $('#notesProjectFilter');
-  if (projectSelect) projectSelect.value = '';
-
-  const filterRow = $('#notesFilterRow');
-  if (filterRow) {
-    filterRow.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-    const allChip = filterRow.querySelector('[data-filter="all"]');
-    if (allChip) allChip.classList.add('active');
-  }
-
-  loadNotes();
 }
 
 // =====================================================================
@@ -992,12 +904,6 @@ function setupEventListeners() {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) loadPageData(currentPage);
   });
-
-  // --- Load more notes ---
-  const loadMoreBtn = $('#loadMoreBtn');
-  if (loadMoreBtn) {
-    loadMoreBtn.addEventListener('click', loadMoreNotes);
-  }
 
   // --- Notes filter chips ---
   const notesFilterRow = $('#notesFilterRow');

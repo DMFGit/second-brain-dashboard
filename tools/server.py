@@ -247,58 +247,28 @@ def voice_parse(voice: VoiceInput):
 # --- Notes endpoints ---
 
 @app.get("/api/notes")
-def list_notes(
-    filter: str = "all",
-    q: str = None,
-    project: str = None,
-    limit: int = 30,
-    offset: int = 0,
-):
+def list_notes(filter: str = "all", q: str = None, project: str = None, limit: int = 30):
     """Get notes with optional type filter, project filter, or search query."""
-    cache_key = f"notes:{filter}:{q}:{project}:{limit}:{offset}"
+    cache_key = f"notes:{filter}:{q}:{project}:{limit}"
     cached = _get_cached(cache_key)
     if cached:
         return cached
 
     try:
-        # Fetch a larger set so we can paginate client-side
-        fetch_limit = limit + offset + 1  # +1 to detect has_more
-
         if q:
-            all_notes = search_notes(q)
+            notes = search_notes(q)
         elif project and filter != "all" and filter != "favorites":
-            all_notes = get_notes_by_project_and_type(project, filter)
+            notes = get_notes_by_project_and_type(project, filter)
         elif project:
-            all_notes = get_notes_by_project(project)
+            notes = get_notes_by_project(project)
         elif filter == "all":
-            all_notes = get_recent_notes(fetch_limit)
+            notes = get_recent_notes(limit)
         elif filter == "favorites":
-            all_notes = get_favorite_notes()
+            notes = get_favorite_notes()
         else:
-            all_notes = get_notes_by_type(filter)
+            notes = get_notes_by_type(filter)
 
-        total = len(all_notes)
-        page = all_notes[offset:offset + limit]
-        has_more = (offset + limit) < total
-
-        # Include pinned favorites on the "All" view (first page only)
-        favorites = None
-        if filter == "all" and not q and not project and offset == 0:
-            try:
-                favs = get_favorite_notes()
-                if favs:
-                    favorites = favs[:6]  # Cap at 6 for the pinned grid
-            except Exception:
-                pass
-
-        data = {
-            "notes": page,
-            "total": total,
-            "has_more": has_more,
-        }
-        if favorites is not None:
-            data["favorites"] = favorites
-
+        data = {"notes": notes}
         _set_cache(cache_key, data)
         return data
     except Exception as e:
