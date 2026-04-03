@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from typing import Optional
 from pydantic import BaseModel
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -115,9 +116,9 @@ def _get_completions_this_week() -> list:
 
 class TaskCreate(BaseModel):
     title: str
-    due_date: str | None = None
-    project_id: str | None = None
-    priority: str | None = None
+    due_date: Optional[str] = None
+    project_id: Optional[str] = None
+    priority: Optional[str] = None
 
 
 class TaskReschedule(BaseModel):
