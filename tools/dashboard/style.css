@@ -1018,6 +1018,136 @@ body {
 .capture-btn--send:hover { transform: scale(1.05); opacity: 0.9; }
 .capture-btn--send:active { transform: scale(0.95); }
 
+.capture-btn--expand { background: transparent; color: var(--text-muted); width: 36px; height: 36px; }
+.capture-btn--expand:hover { color: var(--text-primary); background: var(--bg-hover); }
+.capture-btn--expand.active { color: var(--text-accent); }
+.capture-btn--expand.active svg { transform: rotate(45deg); }
+.capture-btn--expand svg { transition: transform 0.2s var(--ease-out); }
+
+/* Capture metadata row */
+.capture-meta {
+  max-width: 640px; margin: 0 auto 6px;
+  display: none; gap: 6px;
+  padding: 0 4px;
+}
+.capture-meta.expanded { display: flex; }
+
+.capture-meta input,
+.capture-meta select {
+  flex: 1; min-width: 0;
+  padding: 6px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  appearance: none; -webkit-appearance: none;
+}
+.capture-meta select { cursor: pointer; }
+.capture-meta input:focus,
+.capture-meta select:focus { border-color: var(--text-accent); outline: none; }
+.capture-date { max-width: 140px; }
+.capture-priority { max-width: 100px; }
+
+/* Task action buttons (reschedule) */
+.task-actions {
+  display: flex; gap: 2px; flex-shrink: 0;
+  opacity: 0; transition: opacity 0.15s;
+}
+.task-item:hover .task-actions { opacity: 1; }
+
+.task-action-btn {
+  width: 28px; height: 28px;
+  border: none; border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.task-action-btn:hover {
+  background: var(--accent-bg);
+  color: var(--text-accent);
+}
+
+/* Undo button in toast */
+.toast--undo { display: flex; align-items: center; gap: 8px; }
+.undo-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid var(--text-accent);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-accent);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.undo-btn:hover { background: var(--accent-bg); }
+
+/* Sync indicator */
+.sync-indicator {
+  position: fixed;
+  bottom: 8px; left: 8px;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  opacity: 0.6;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Keyboard shortcuts overlay */
+.shortcuts-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.15s ease both;
+}
+.shortcuts-overlay.hidden { display: none; }
+
+.shortcuts-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 32px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  min-width: 240px;
+}
+.shortcuts-panel h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+.shortcut-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+.shortcut-row kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; padding: 2px 8px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--text-primary);
+}
+.shortcuts-close {
+  position: absolute; top: 12px; right: 16px;
+  background: none; border: none;
+  color: var(--text-muted); font-size: 1.2rem;
+  cursor: pointer;
+}
+
 /* ===================================================================
    TOAST & ERROR
    =================================================================== */
@@ -1112,6 +1242,9 @@ body {
   }
 
   .capture-inner { max-width: 640px; }
+  .capture-meta { max-width: 640px; }
+
+  .sync-indicator { left: calc(var(--sidebar-width) + 12px); }
 
   .header { padding-top: 32px; }
   .task-item { padding: 14px 18px; }

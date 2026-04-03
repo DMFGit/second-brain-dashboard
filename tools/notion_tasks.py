@@ -89,7 +89,8 @@ def get_inbox_count() -> int:
     return len(pages)
 
 
-def create_task(title: str, due_date: str = None, project_id: str = None) -> dict:
+def create_task(title: str, due_date: str = None, project_id: str = None,
+                priority: str = None) -> dict:
     """Create a new task."""
     properties = {
         PROP_NAME: {"title": [{"text": {"content": title}}]},
@@ -101,6 +102,9 @@ def create_task(title: str, due_date: str = None, project_id: str = None) -> dic
     if project_id:
         properties[PROP_PROJECT] = {"relation": [{"id": project_id}]}
 
+    if priority and priority in ("Low", "Medium", "High"):
+        properties[PROP_PRIORITY] = {"status": {"name": priority}}
+
     page = create_page("TASKS", properties)
     return _serialize_task(page)
 
@@ -109,6 +113,24 @@ def complete_task(page_id: str) -> dict:
     """Mark a task as done."""
     properties = {
         PROP_STATUS: {"status": {"name": "Done"}},
+    }
+    page = update_page(page_id, properties)
+    return _serialize_task(page)
+
+
+def uncomplete_task(page_id: str) -> dict:
+    """Revert a task back to To Do."""
+    properties = {
+        PROP_STATUS: {"status": {"name": "To Do"}},
+    }
+    page = update_page(page_id, properties)
+    return _serialize_task(page)
+
+
+def reschedule_task(page_id: str, new_due_date: str) -> dict:
+    """Change a task's due date."""
+    properties = {
+        PROP_DUE: {"date": {"start": new_due_date}},
     }
     page = update_page(page_id, properties)
     return _serialize_task(page)

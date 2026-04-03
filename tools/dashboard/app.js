@@ -24,6 +24,9 @@ let notesOffset = 0;
 let notesHasMore = false;
 const NOTES_PAGE_SIZE = 30;
 let libraryTab = 'books';
+let lastSyncTime = null;
+let undoTimer = null;
+let captureExpanded = false;
 
 // --- DOM Refs ---
 const $ = (sel) => document.querySelector(sel);
@@ -34,6 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initRouter();
   setupEventListeners();
+  setupKeyboardShortcuts();
+  setupInfiniteScroll();
+  loadCaptureProjects();
   startAutoRefresh();
 });
 
@@ -124,15 +130,59 @@ function setDateDisplay() {
 
 async function loadDashboard() {
   try {
-    const res = await fetch(`${API}/api/dashboard`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    dashboardData = await res.json();
+    const [dashRes, myDayRes] = await Promise.all([
+      fetch(`${API}/api/dashboard`),
+      fetch(`${API}/api/tasks/my-day`),
+    ]);
+    if (!dashRes.ok) throw new Error(`HTTP ${dashRes.status}`);
+    dashboardData = await dashRes.json();
     renderDashboard(dashboardData);
+
+    if (myDayRes.ok) {
+      const myDayData = await myDayRes.json();
+      renderMyDay(myDayData);
+    }
+
+    updateSyncTime();
     hideError();
   } catch (err) {
     console.error('Dashboard load failed:', err);
     showError();
   }
+}
+
+function renderMyDay(data) {
+  const container = $('#myDayTasks');
+  const count = $('#myDayCount');
+  if (!container) return;
+
+  if (count) count.textContent = data.count || 0;
+
+  if (!data.tasks || data.tasks.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⭐</div>No tasks flagged for My Day</div>';
+    return;
+  }
+
+  container.innerHTML = data.tasks.map((task, i) => {
+    const dateLabel = task.due_date ? formatDate(task.due_date) : '';
+    return `
+      <div class="task-item task-item--today" data-id="${task.id}" style="animation-delay: ${i * 0.04}s">
+        <div class="task-check" data-task-id="${task.id}" role="checkbox" aria-label="Complete task" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div class="task-body">
+          <div class="task-title">${escapeHtml(task.title)}</div>
+          <div class="task-meta">
+            ${dateLabel ? `<span class="task-date">${dateLabel}</span>` : ''}
+            ${task.priority ? `<span class="task-priority">${escapeHtml(task.priority)}</span>` : ''}
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="task-action-btn" data-task-id="${task.id}" data-action="tomorrow" title="Tomorrow">→</button>
+          <button class="task-action-btn" data-task-id="${task.id}" data-action="next-week" title="Next week">⟫</button>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function renderDashboard(data) {
@@ -193,6 +243,10 @@ function renderTaskList(container, tasks, scope, todayDate) {
             ${dateLabel ? `<span class="task-date">${dateLabel}</span>` : ''}
             ${task.priority ? `<span class="task-priority">${escapeHtml(task.priority)}</span>` : ''}
           </div>
+        </div>
+        <div class="task-actions">
+          <button class="task-action-btn" data-task-id="${task.id}" data-action="tomorrow" title="Tomorrow">→</button>
+          <button class="task-action-btn" data-task-id="${task.id}" data-action="next-week" title="Next week">⟫</button>
         </div>
       </div>`;
   }).join('');
@@ -685,7 +739,7 @@ function renderReviewList(container, tasks, type) {
 }
 
 // =====================================================================
-//  TASK COMPLETION
+//  TASK COMPLETION (with undo)
 // =====================================================================
 
 async function handleTaskComplete(taskId, element) {
@@ -702,7 +756,7 @@ async function handleTaskComplete(taskId, element) {
 
     setTimeout(() => {
       taskItem.classList.add('completed-anim');
-      showToast('Task completed', '✓');
+      showUndoToast('Task completed', taskId);
 
       setTimeout(() => {
         taskItem.remove();
@@ -714,6 +768,79 @@ async function handleTaskComplete(taskId, element) {
     checkbox.classList.remove('checked');
     taskItem.classList.remove('completing');
     showToast('Failed to complete task', '⚠');
+  }
+}
+
+function showUndoToast(message, taskId) {
+  const container = $('#toastContainer');
+  if (!container) return;
+
+  // Clear any existing undo timer
+  if (undoTimer) clearTimeout(undoTimer);
+
+  const toast = document.createElement('div');
+  toast.className = 'toast toast--undo';
+  toast.innerHTML = `<span class="toast-icon">✓</span> ${escapeHtml(message)} <button class="undo-btn" data-undo-task="${taskId}">Undo</button>`;
+  container.appendChild(toast);
+
+  undoTimer = setTimeout(() => {
+    toast.classList.add('removing');
+    setTimeout(() => toast.remove(), 300);
+  }, 5000);
+}
+
+async function handleUndo(taskId) {
+  if (undoTimer) clearTimeout(undoTimer);
+  // Remove undo toast
+  $$('.toast--undo').forEach(t => t.remove());
+
+  try {
+    const res = await fetch(`${API}/api/tasks/${taskId}?action=uncomplete`, { method: 'PATCH' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    showToast('Task restored', '↩');
+    loadDashboard();
+  } catch (err) {
+    showToast('Failed to undo', '⚠');
+  }
+}
+
+// =====================================================================
+//  TASK RESCHEDULING
+// =====================================================================
+
+async function handleReschedule(taskId, action) {
+  const today = new Date();
+  let newDate;
+
+  if (action === 'tomorrow') {
+    newDate = new Date(today);
+    newDate.setDate(today.getDate() + 1);
+  } else if (action === 'next-week') {
+    newDate = new Date(today);
+    newDate.setDate(today.getDate() + (8 - today.getDay())); // next Monday
+  }
+
+  if (!newDate) return;
+
+  const dateStr = newDate.toISOString().split('T')[0];
+  const taskItem = document.querySelector(`[data-id="${taskId}"]`);
+
+  try {
+    const res = await fetch(`${API}/api/tasks/${taskId}/reschedule`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ due_date: dateStr }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    if (taskItem) {
+      taskItem.classList.add('completed-anim');
+      setTimeout(() => taskItem.remove(), 400);
+    }
+    showToast(`Moved to ${action === 'tomorrow' ? 'tomorrow' : 'next week'}`, '📅');
+    setTimeout(() => loadDashboard(), 500);
+  } catch (err) {
+    showToast('Failed to reschedule', '⚠');
   }
 }
 
@@ -746,15 +873,34 @@ async function handleCapture(text) {
 async function handleCreateTask(title) {
   if (!title.trim()) return;
 
+  const body = { title: title.trim() };
+
+  // Pull metadata from capture bar fields
+  const dateEl = $('#captureDate');
+  const priorityEl = $('#capturePriority');
+  const projectEl = $('#captureProject');
+
+  if (dateEl?.value) body.due_date = dateEl.value;
+  if (priorityEl?.value) body.priority = priorityEl.value;
+  if (projectEl?.value) body.project_id = projectEl.value;
+
   try {
     const res = await fetch(`${API}/api/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: title.trim() }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     showToast('Task added', '✓');
+    // Reset metadata fields
+    if (dateEl) dateEl.value = '';
+    if (priorityEl) priorityEl.value = '';
+    if (projectEl) projectEl.value = '';
+    captureExpanded = false;
+    const meta = $('#captureMeta');
+    if (meta) meta.classList.remove('expanded');
+
     _invalidateAndRefresh();
   } catch (err) {
     showToast('Failed to add task', '⚠');
@@ -995,6 +1141,58 @@ function setupEventListeners() {
     });
   }
 
+  // Reschedule buttons (delegated)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.task-action-btn');
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const taskId = btn.dataset.taskId;
+      const action = btn.dataset.action;
+      if (taskId && action) handleReschedule(taskId, action);
+    }
+  });
+
+  // Undo button (delegated)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.undo-btn');
+    if (btn) {
+      e.preventDefault();
+      const taskId = btn.dataset.undoTask;
+      if (taskId) handleUndo(taskId);
+    }
+  });
+
+  // Capture expand button
+  const expandBtn = $('#expandBtn');
+  if (expandBtn) {
+    expandBtn.addEventListener('click', () => {
+      captureExpanded = !captureExpanded;
+      const meta = $('#captureMeta');
+      if (meta) meta.classList.toggle('expanded', captureExpanded);
+      expandBtn.classList.toggle('active', captureExpanded);
+    });
+  }
+
+  // My Day collapse toggle
+  const myDayToggle = $('#myDayToggle');
+  if (myDayToggle) {
+    myDayToggle.addEventListener('click', () => {
+      const ml = $('#myDayTasks');
+      if (ml) ml.classList.toggle('collapsed');
+      myDayToggle.classList.toggle('is-collapsed');
+    });
+  }
+
+  // Shortcuts overlay close
+  const shortcutsClose = $('#shortcutsClose');
+  if (shortcutsClose) {
+    shortcutsClose.addEventListener('click', () => {
+      const overlay = $('#shortcutsOverlay');
+      if (overlay) overlay.classList.add('hidden');
+    });
+  }
+
   // Error dismiss
   const errorDismiss = $('#errorDismiss');
   if (errorDismiss) errorDismiss.addEventListener('click', hideError);
@@ -1068,6 +1266,101 @@ function setupEventListeners() {
       loadLibraryTab(tab.dataset.lib);
     });
   }
+}
+
+// =====================================================================
+//  SYNC INDICATOR
+// =====================================================================
+
+function updateSyncTime() {
+  lastSyncTime = new Date();
+  renderSyncIndicator();
+}
+
+function renderSyncIndicator() {
+  const el = $('#syncIndicator');
+  if (!el || !lastSyncTime) return;
+
+  const diff = Math.round((new Date() - lastSyncTime) / 1000);
+  if (diff < 10) el.textContent = 'Synced just now';
+  else if (diff < 60) el.textContent = `Synced ${diff}s ago`;
+  else el.textContent = `Synced ${Math.round(diff / 60)}m ago`;
+}
+
+// Update sync indicator every 15s
+setInterval(renderSyncIndicator, 15000);
+
+// =====================================================================
+//  KEYBOARD SHORTCUTS
+// =====================================================================
+
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Don't fire when typing in inputs
+    if (e.target.matches('input, select, textarea')) return;
+
+    switch (e.key) {
+      case '1': window.location.hash = '#home'; break;
+      case '2': window.location.hash = '#notes'; break;
+      case '3': window.location.hash = '#library'; break;
+      case '4': window.location.hash = '#review'; break;
+      case '/':
+        e.preventDefault();
+        const search = $('#notesSearch');
+        if (search) { window.location.hash = '#notes'; setTimeout(() => search.focus(), 100); }
+        break;
+      case 'c':
+        e.preventDefault();
+        const capture = $('#captureInput');
+        if (capture) capture.focus();
+        break;
+      case '?':
+        e.preventDefault();
+        const overlay = $('#shortcutsOverlay');
+        if (overlay) overlay.classList.toggle('hidden');
+        break;
+    }
+  });
+}
+
+// =====================================================================
+//  INFINITE SCROLL (Notes)
+// =====================================================================
+
+function setupInfiniteScroll() {
+  const pageContainer = $('#pageContainer');
+  if (!pageContainer) return;
+
+  pageContainer.addEventListener('scroll', () => {
+    if (currentPage !== 'notes' || !notesHasMore) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = pageContainer;
+    if (scrollHeight - scrollTop - clientHeight < 200) {
+      notesOffset += NOTES_PAGE_SIZE;
+      loadNotes(true);
+    }
+  });
+}
+
+// =====================================================================
+//  CAPTURE BAR PROJECTS
+// =====================================================================
+
+async function loadCaptureProjects() {
+  try {
+    const res = await fetch(`${API}/api/projects`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const select = $('#captureProject');
+    if (!select || !data.projects?.length) return;
+
+    data.projects.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.title;
+      select.appendChild(opt);
+    });
+  } catch {}
 }
 
 // =====================================================================

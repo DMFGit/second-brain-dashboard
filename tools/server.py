@@ -20,8 +20,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from tools.notion_tasks import (
     get_todays_tasks, get_upcoming_deadlines, get_inbox_count,
-    create_task, complete_task,
+    create_task, complete_task, uncomplete_task, reschedule_task,
     get_completed_this_week, get_carry_over_tasks, get_next_week_tasks,
+    get_my_day_tasks,
 )
 from tools.notion_capture import quick_capture
 from tools.notion_projects import get_active_projects, get_all_projects
@@ -116,6 +117,11 @@ class TaskCreate(BaseModel):
     title: str
     due_date: str | None = None
     project_id: str | None = None
+    priority: str | None = None
+
+
+class TaskReschedule(BaseModel):
+    due_date: str
 
 
 class CaptureCreate(BaseModel):
@@ -190,6 +196,7 @@ def add_task(task: TaskCreate):
             title=task.title,
             due_date=task.due_date,
             project_id=task.project_id,
+            priority=task.priority,
         )
         _invalidate_cache()
         return {"task": result}
@@ -199,17 +206,47 @@ def add_task(task: TaskCreate):
 
 @app.patch("/api/tasks/{page_id}")
 def update_task(page_id: str, action: str = "complete"):
-    """Update a task (currently supports 'complete')."""
+    """Update a task: complete, uncomplete, or reschedule."""
     try:
         if action == "complete":
             result = complete_task(page_id)
             _save_completion(page_id, result.get("title", ""))
             _invalidate_cache()
             return {"task": result}
+        elif action == "uncomplete":
+            result = uncomplete_task(page_id)
+            _invalidate_cache()
+            return {"task": result}
         else:
             raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/tasks/{page_id}/reschedule")
+def reschedule(page_id: str, body: TaskReschedule):
+    """Reschedule a task to a new date."""
+    try:
+        result = reschedule_task(page_id, body.due_date)
+        _invalidate_cache()
+        return {"task": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/tasks/my-day")
+def my_day_tasks():
+    """Get tasks flagged for My Day."""
+    cached = _get_cached("my_day")
+    if cached:
+        return cached
+    try:
+        tasks = get_my_day_tasks()
+        data = {"tasks": tasks, "count": len(tasks)}
+        _set_cache("my_day", data)
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
