@@ -130,18 +130,10 @@ function setDateDisplay() {
 
 async function loadDashboard() {
   try {
-    const [dashRes, myDayRes] = await Promise.all([
-      fetch(`${API}/api/dashboard`),
-      fetch(`${API}/api/tasks/my-day`),
-    ]);
-    if (!dashRes.ok) throw new Error(`HTTP ${dashRes.status}`);
-    dashboardData = await dashRes.json();
+    const res = await fetch(`${API}/api/dashboard`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    dashboardData = await res.json();
     renderDashboard(dashboardData);
-
-    if (myDayRes.ok) {
-      const myDayData = await myDayRes.json();
-      renderMyDay(myDayData);
-    }
 
     updateSyncTime();
     hideError();
@@ -151,39 +143,6 @@ async function loadDashboard() {
   }
 }
 
-function renderMyDay(data) {
-  const container = $('#myDayTasks');
-  const count = $('#myDayCount');
-  if (!container) return;
-
-  if (count) count.textContent = data.count || 0;
-
-  if (!data.tasks || data.tasks.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⭐</div>No tasks flagged for My Day</div>';
-    return;
-  }
-
-  container.innerHTML = data.tasks.map((task, i) => {
-    const dateLabel = task.due_date ? formatDate(task.due_date) : '';
-    return `
-      <div class="task-item task-item--today" data-id="${task.id}" style="animation-delay: ${i * 0.04}s">
-        <div class="task-check" data-task-id="${task.id}" role="checkbox" aria-label="Complete task" tabindex="0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
-        </div>
-        <div class="task-body">
-          <div class="task-title">${escapeHtml(task.title)}</div>
-          <div class="task-meta">
-            ${dateLabel ? `<span class="task-date">${dateLabel}</span>` : ''}
-            ${task.priority ? `<span class="task-priority">${escapeHtml(task.priority)}</span>` : ''}
-          </div>
-        </div>
-        <div class="task-actions">
-          <button class="task-action-btn" data-task-id="${task.id}" data-action="tomorrow" title="Tomorrow">→</button>
-          <button class="task-action-btn" data-task-id="${task.id}" data-action="next-week" title="Next week">⟫</button>
-        </div>
-      </div>`;
-  }).join('');
-}
 
 function renderDashboard(data) {
   const statToday = $('#statToday');
@@ -1171,16 +1130,6 @@ function setupEventListeners() {
       const meta = $('#captureMeta');
       if (meta) meta.classList.toggle('expanded', captureExpanded);
       expandBtn.classList.toggle('active', captureExpanded);
-    });
-  }
-
-  // My Day collapse toggle
-  const myDayToggle = $('#myDayToggle');
-  if (myDayToggle) {
-    myDayToggle.addEventListener('click', () => {
-      const ml = $('#myDayTasks');
-      if (ml) ml.classList.toggle('collapsed');
-      myDayToggle.classList.toggle('is-collapsed');
     });
   }
 
