@@ -221,6 +221,17 @@ function formatDate(dateStr) {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+function formatNoteDate(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((date - today) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === -1) return 'Yesterday';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function renderProjects(projects) {
   const container = $('#projectsList');
   if (!container) return;
@@ -337,7 +348,7 @@ function renderNoteCard(note, i) {
   const typeSlug = note.type ? note.type.toLowerCase().replace(/\s+/g, '-') : '';
   const typeClass = typeSlug ? `note-type--${typeSlug}` : '';
   const icon = NOTE_ICONS[note.type] || '●';
-  const dateLabel = note.note_date ? formatDate(note.note_date) : '';
+  const dateLabel = note.note_date ? formatNoteDate(note.note_date) : '';
   const sourceDomain = note.source_url ? (() => {
     try { return new URL(note.source_url).hostname.replace('www.', ''); } catch { return ''; }
   })() : '';
@@ -367,7 +378,7 @@ function renderPinnedFavorites(favorites) {
       </div>
       <div class="notes-pinned-grid">
         ${favorites.map((note, i) => {
-          const dateLabel = note.note_date ? formatDate(note.note_date) : '';
+          const dateLabel = note.note_date ? formatNoteDate(note.note_date) : '';
           const typeSlug = note.type ? note.type.toLowerCase().replace(/\s+/g, '-') : '';
           return `
             <a class="note-pin-card" href="${note.url || '#'}" target="_blank" rel="noopener" style="animation-delay: ${i * 0.04}s">
