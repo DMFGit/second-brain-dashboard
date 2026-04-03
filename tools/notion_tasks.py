@@ -154,15 +154,18 @@ def get_completed_this_week() -> list:
 
 
 def get_my_day_tasks() -> list:
-    """Get tasks flagged for My Day that aren't done."""
+    """Get tasks flagged for My Day that are due today or tomorrow and aren't done."""
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+
     filter_obj = {
         "and": [
             {"property": PROP_MY_DAY, "checkbox": {"equals": True}},
             {"property": PROP_STATUS, "status": {"does_not_equal": "Done"}},
+            {"property": PROP_DUE, "date": {"on_or_before": tomorrow}},
         ]
     }
 
-    sorts = [{"property": PROP_PRIORITY, "direction": "ascending"}]
+    sorts = [{"property": PROP_DUE, "direction": "ascending"}]
     pages = query_database("TASKS", filter_obj=filter_obj, sorts=sorts)
     return [_serialize_task(p) for p in pages]
 
