@@ -189,6 +189,21 @@ def list_tasks(scope: str = "today", days: int = 7):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/tasks/my-day")
+def my_day_tasks():
+    """Get tasks flagged for My Day."""
+    cached = _get_cached("my_day")
+    if cached:
+        return cached
+    try:
+        tasks = get_my_day_tasks()
+        data = {"tasks": tasks, "count": len(tasks)}
+        _set_cache("my_day", data)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/tasks")
 def add_task(task: TaskCreate):
     """Create a new task."""
@@ -233,21 +248,6 @@ def reschedule(page_id: str, body: TaskReschedule):
         result = reschedule_task(page_id, body.due_date)
         _invalidate_cache()
         return {"task": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/tasks/my-day")
-def my_day_tasks():
-    """Get tasks flagged for My Day."""
-    cached = _get_cached("my_day")
-    if cached:
-        return cached
-    try:
-        tasks = get_my_day_tasks()
-        data = {"tasks": tasks, "count": len(tasks)}
-        _set_cache("my_day", data)
-        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
