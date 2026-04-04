@@ -454,6 +454,9 @@ def weekly_review():
 _workflows_file = Path(__file__).parent.parent / ".tmp" / "workflow_status.json"
 
 
+_summaries_file = Path(__file__).parent / "project_summaries.json"
+
+
 @app.get("/api/workflows")
 def workflows():
     """Return scanned workflow project statuses."""
@@ -469,7 +472,7 @@ def workflows():
         except (json.JSONDecodeError, OSError):
             pass
 
-    # If no cached scan, run one now
+    # Try a live scan (only works locally where projects exist)
     try:
         from tools.scan_workflows import scan_all
         data = {
@@ -481,8 +484,32 @@ def workflows():
         _workflows_file.write_text(json.dumps(data, indent=2, default=str))
         _set_cache("workflows", data)
         return data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        pass
+
+    # Fallback: serve static summaries (for deployed environments)
+    if _summaries_file.exists():
+        try:
+            summaries = json.loads(_summaries_file.read_text())
+            projects = []
+            for s in summaries:
+                projects.append({
+                    "name": s["name"],
+                    "parent": s.get("parent"),
+                    "status_label": s.get("status", ""),
+                    "summary": s.get("summary", ""),
+                })
+            data = {
+                "scanned_at": None,
+                "projects_count": len(projects),
+                "projects": projects,
+            }
+            _set_cache("workflows", data)
+            return data
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    raise HTTPException(status_code=500, detail="No workflow data available")
 
 
 # --- Static files (dashboard frontend) ---
