@@ -491,6 +491,7 @@ def workflows():
     if _summaries_file.exists():
         try:
             summaries = json.loads(_summaries_file.read_text())
+            status_order = {"In progress": 0, "Scaffolded": 1, "Active": 2, "Running": 3, "Built": 4, "Stalled": 5}
             projects = []
             for s in summaries:
                 projects.append({
@@ -499,6 +500,7 @@ def workflows():
                     "status_label": s.get("status", ""),
                     "summary": s.get("summary", ""),
                 })
+            projects.sort(key=lambda p: status_order.get(p.get("status_label", ""), 9))
             data = {
                 "scanned_at": None,
                 "projects_count": len(projects),
