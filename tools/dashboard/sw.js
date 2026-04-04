@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-v3';
+const CACHE_NAME = 'second-brain-v4';
 const SHELL_FILES = [
   '/',
   '/index.html',
@@ -25,7 +25,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch — network first for API, cache first for shell
+// Fetch — network first, cache fallback (offline support)
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -35,17 +35,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Shell files: cache first, network fallback
+  // Everything else: try network first, fall back to cache
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        // Cache new resources
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      });
-    })
+    fetch(event.request).then((response) => {
+      if (response.ok) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      }
+      return response;
+    }).catch(() => caches.match(event.request))
   );
 });
