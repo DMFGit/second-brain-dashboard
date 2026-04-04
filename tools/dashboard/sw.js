@@ -1,4 +1,4 @@
-const CACHE_NAME = 'second-brain-v1';
+const CACHE_NAME = 'second-brain-v3';
 const SHELL_FILES = [
   '/',
   '/index.html',

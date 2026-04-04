@@ -1251,6 +1251,110 @@ body {
   .bottom-spacer { height: 100px; }
 }
 
+/* ==================== WORKFLOWS PAGE ==================== */
+
+.workflows-list { display: flex; flex-direction: column; gap: 24px; }
+
+/* --- Workflows Table --- */
+.wf-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wf-table thead { position: sticky; top: 0; z-index: 1; }
+
+.wf-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.wf-th-name { width: 28%; }
+.wf-th-status { width: 110px; }
+.wf-th-summary { }
+
+.wf-row { transition: background 0.15s; }
+.wf-row:hover { background: var(--bg-hover); }
+
+.wf-row td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+/* Name cell */
+.wf-cell-name {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.wf-parent {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Status badges */
+.wf-status {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.wf-status--active {
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+}
+.wf-status--progress {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+}
+.wf-status--running {
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--text-accent) 12%, transparent);
+}
+.wf-status--built {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+}
+.wf-status--scaffolded {
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+}
+.wf-status--stalled {
+  color: var(--red);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+.wf-status--unknown {
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+}
+
+/* Summary cell */
+.wf-cell-summary {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.wf-muted { color: var(--text-muted); }
+
+/* Mobile */
+@media (max-width: 600px) {
+  .wf-table th, .wf-row td { padding: 10px 10px; }
+  .wf-th-summary, .wf-cell-summary { display: none; }
+  .wf-th-name { width: auto; }
+}
+
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

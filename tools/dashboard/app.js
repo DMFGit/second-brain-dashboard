@@ -13,6 +13,7 @@ let booksData = null;
 let moviesData = null;
 let recipesData = null;
 let reviewData = null;
+let workflowsData = null;
 let refreshTimer = null;
 let isListening = false;
 let currentPage = 'home';
@@ -88,6 +89,9 @@ function loadPageData(page) {
       break;
     case 'review':
       loadReview();
+      break;
+    case 'workflows':
+      loadWorkflows();
       break;
   }
 }
@@ -1240,6 +1244,81 @@ function renderSyncIndicator() {
 setInterval(renderSyncIndicator, 15000);
 
 // =====================================================================
+//  WORKFLOWS PAGE
+// =====================================================================
+
+async function loadWorkflows() {
+  try {
+    const res = await fetch(`${API}/api/workflows`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    workflowsData = await res.json();
+    renderWorkflows();
+  } catch (err) {
+    console.error('Failed to load workflows:', err);
+    $('#workflowsList').innerHTML = '<p class="empty-msg">Unable to load workflow status</p>';
+  }
+}
+
+function renderWorkflows() {
+  if (!workflowsData) return;
+
+  const scanTime = workflowsData.scanned_at;
+  if (scanTime) {
+    const d = new Date(scanTime);
+    const now = new Date();
+    const diffH = Math.round((now - d) / 3600000);
+    const timeStr = diffH < 1 ? 'just now' : diffH < 24 ? `${diffH}h ago` : `${Math.round(diffH/24)}d ago`;
+    $('#workflowsScanTime').textContent = `Last scan: ${timeStr} — ${workflowsData.projects_count} projects`;
+  }
+
+  const projects = workflowsData.projects || [];
+  const container = $('#workflowsList');
+
+  if (!projects.length) {
+    container.innerHTML = '<p class="empty-msg">No workflows found</p>';
+    return;
+  }
+
+  const statusClass = {
+    'Active': 'wf-status--active',
+    'In progress': 'wf-status--progress',
+    'Running': 'wf-status--running',
+    'Built': 'wf-status--built',
+    'Scaffolded': 'wf-status--scaffolded',
+    'Stalled': 'wf-status--stalled',
+  };
+
+  let html = `<table class="wf-table"><thead><tr>
+    <th class="wf-th-name">Project</th>
+    <th class="wf-th-status">Status</th>
+    <th class="wf-th-summary">What's happening</th>
+  </tr></thead><tbody>`;
+
+  for (const p of projects) {
+    const name = p.parent
+      ? `<span class="wf-parent">${escapeHtml(p.parent)}/</span>${escapeHtml(p.name)}`
+      : escapeHtml(p.name);
+    const status = p.status_label || 'Unknown';
+    const cls = statusClass[status] || 'wf-status--unknown';
+    const summary = p.summary ? escapeHtml(p.summary) : '<span class="wf-muted">—</span>';
+
+    html += `<tr class="wf-row">
+      <td class="wf-cell-name">${name}</td>
+      <td class="wf-cell-status"><span class="wf-status ${cls}">${escapeHtml(status)}</span></td>
+      <td class="wf-cell-summary">${summary}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// =====================================================================
 //  KEYBOARD SHORTCUTS
 // =====================================================================
 
@@ -1253,6 +1332,7 @@ function setupKeyboardShortcuts() {
       case '2': window.location.hash = '#notes'; break;
       case '3': window.location.hash = '#library'; break;
       case '4': window.location.hash = '#review'; break;
+      case '5': window.location.hash = '#workflows'; break;
       case '/':
         e.preventDefault();
         const search = $('#notesSearch');

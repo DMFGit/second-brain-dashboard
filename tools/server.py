@@ -450,6 +450,41 @@ def weekly_review():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# --- Agentic Workflows status ---
+_workflows_file = Path(__file__).parent.parent / ".tmp" / "workflow_status.json"
+
+
+@app.get("/api/workflows")
+def workflows():
+    """Return scanned workflow project statuses."""
+    cached = _get_cached("workflows")
+    if cached:
+        return cached
+
+    if _workflows_file.exists():
+        try:
+            data = json.loads(_workflows_file.read_text())
+            _set_cache("workflows", data)
+            return data
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # If no cached scan, run one now
+    try:
+        from tools.scan_workflows import scan_all
+        data = {
+            "scanned_at": datetime.now().isoformat(),
+            "projects": scan_all(),
+        }
+        data["projects_count"] = len(data["projects"])
+        _workflows_file.parent.mkdir(parents=True, exist_ok=True)
+        _workflows_file.write_text(json.dumps(data, indent=2, default=str))
+        _set_cache("workflows", data)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # --- Static files (dashboard frontend) ---
 dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard")
 

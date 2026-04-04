@@ -90,7 +90,7 @@ Go back and forth until the user is happy. Common adjustments:
 
 Once the user agrees:
 
-1. **Add time blocks to Outlook** — use Outlook MCP `create_event` for each scheduled block (not the ones that already exist as calendar events). Mark them as "free" or use a category so they're distinguishable from real meetings.
+1. **Add time blocks to Outlook** — use Outlook MCP `create_event` for each scheduled block (not the ones that already exist as calendar events). Mark them as "free" or use a category so they're distinguishable from real meetings. Use the "Goal" icon for each event so they are distinguishable. 
 2. **Create a daily note in Notion** — use `tools/notion_notes.py` or the Notion MCP to create a note with:
    - **Type**: Plan
    - **Note Date**: today
