@@ -19,7 +19,7 @@ from pathlib import Path
 
 WORKFLOWS_ROOT = Path(os.path.expanduser("~/Agentic Workflows"))
 OUTPUT_PATH = Path(__file__).parent.parent / ".tmp" / "workflow_status.json"
-SUMMARIES_PATH = Path(__file__).parent.parent / ".tmp" / "project_summaries.json"
+SUMMARIES_PATH = Path(__file__).parent / "project_summaries.json"
 
 # Projects to skip (not real projects)
 SKIP_DIRS = {"00_Resources", ".git", "__pycache__", "node_modules"}

@@ -1,0 +1,15 @@
+[
+  {"name": "Second Brain", "parent": null, "status": "Active", "summary": "Notion integration, daily planning, dashboard tools"},
+  {"name": "Financial Planning", "parent": null, "status": "In progress", "summary": "Financial forecasting, budget tracking, scenario modeling"},
+  {"name": "Entertainment", "parent": null, "status": "In progress", "summary": "Spotify recommendation system setup"},
+  {"name": "Transfer", "parent": null, "status": "Scaffolded", "summary": "Data transfer framework structure"},
+  {"name": "Stay in the Know", "parent": "DMF", "status": "Running", "summary": "Morning news digest, weekly events pipeline"},
+  {"name": "Expense Automation", "parent": "DMF", "status": "Running", "summary": "Rocket Money integration, expense tracking"},
+  {"name": "Data Backup", "parent": "DMF", "status": "Running", "summary": "OneDrive and Notion backup automation"},
+  {"name": "C3D Layers", "parent": "DMF", "status": "Built", "summary": "Civil3D layer generation tools"},
+  {"name": "Project Based Resume Builder", "parent": "DMF", "status": "Running", "summary": "Resume generation from project data"},
+  {"name": "Timesheet", "parent": "DMF", "status": "In progress", "summary": "Time tracking and billing application"},
+  {"name": "Civil3D Setup", "parent": "DMF", "status": "Scaffolded", "summary": "Civil3D project initialization framework"},
+  {"name": "Project folder structure", "parent": "DMF", "status": "Built", "summary": "Template structure for new DMF projects"},
+  {"name": "scripts", "parent": "DMF", "status": "Built", "summary": "Shared utility script library"}
+]
